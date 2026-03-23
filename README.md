@@ -1,6 +1,6 @@
 # Sunspot
 
-**Sunspot** provides tools to prove and verify [noir](https://noir-lang.org) circuits on solana.
+**Sunspot** provides tools to prove and verify [noir](https://noir-lang.org) circuits on Solana, and to generate verifier packages for Sui.
 
 > ⚠️ Requires **Noir 1.0.0-beta.18**
 
@@ -85,6 +85,18 @@ source ~/.bashrc       # or ~/.bash_profile, ~/.zshrc depending on your shell
 
 Now `GNARK_VERIFIER_BIN` will be available in all future terminal sessions.
 
+## Setting `GNARK_SUI_PACKAGE_GENERATOR`
+
+`sunspot deploy-sui` shells out to the Rust generator crate under `gnark-sui/`.
+If you run the CLI outside this repository layout, set:
+
+```bash
+export GNARK_SUI_PACKAGE_GENERATOR=/path/to/sunspot/gnark-sui/crates/package-generator/Cargo.toml
+```
+
+If this variable is not set, `deploy-sui` will try a few repository-relative and
+binary-relative locations, but a standalone copied binary is not enough by itself.
+
 
 ## Usage
 
@@ -106,6 +118,7 @@ sunspot [command]
 | `setup`      | Generate a proving key (pk) and verifying key (vk) from a CCS file               |
 | `verify`     | Verify a proof and public witness with a verification key                        |
 | `deploy`     | Create a verifying solana program executable and keypair|
+| `deploy-sui` | Generate a Sui Move verifier package from a verifying key |
 
 ### 💡 Examples
 
@@ -126,6 +139,9 @@ sunspot verify verifying_key.vk proof.proof public_witness.pw
 
 # Create Solana verification program
 sunspot deploy verifying_key.vk 
+
+# Create a Sui Move verifier package
+sunspot deploy-sui verifying_key.vk
 ```
 
 For detailed information on each command:
@@ -139,9 +155,37 @@ sunspot [command] --help
 This project is organized as follows:
 
 - `go/` – Contains functionality to parse Noir circuits and witnesses and produces gnark outputs, also contains CLI functionality in `go/cmd` subdirectory.
-- `gnark-solana/` – Provides functionality to verify gnark proofs on solana, a fuller description of this directory can be found [here](gnark-solana/README.md).
+- `gnark-solana/` – Provides functionality to verify gnark proofs on Solana, a fuller description of this directory can be found [here](gnark-solana/README.md).
+- `gnark-sui/` – Provides functionality to generate Sui Move verifier packages backed by `sui::groth16`.
 - `noir-samples/` – Example Noir projects used for unit and integration tests.
 - `testgen` - Creates ACIR snippets to test parsing, does **not** produce semantically valid programs.
+
+## Sui Output
+
+`sunspot deploy-sui` generates a Move package that embeds a prepared BN254 Groth16 verifying key and exposes a `verify(public_inputs_bytes, proof_points_bytes)` entrypoint backed by `sui::groth16`.
+
+The command can also convert a gnark `.proof` and `.pw` into the serialized bytes expected by Sui:
+
+```bash
+sunspot deploy-sui my_circuit.vk \
+  --proof my_circuit.proof \
+  --public-witness my_circuit.pw
+```
+
+This emits:
+
+- `artifacts/proof.bin` – Arkworks-compressed BN254 Groth16 proof bytes
+- `artifacts/public_inputs.bin` – Arkworks-compressed BN254 public input bytes
+
+By default the generated `Move.toml` pins `Sui` with a git revision so the
+package is portable. If you prefer a local framework dependency, pass
+`--sui-framework-path`.
+
+Current Sui limitations:
+
+- Only standard Groth16 circuits are supported.
+- Gnark commitment extensions are not supported on the Sui target.
+- Sui currently supports at most 8 public inputs for `groth16`.
 
 
 ## Credits

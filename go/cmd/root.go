@@ -14,8 +14,8 @@ type T = *bn254.BN254Field
 
 var rootCmd = &cobra.Command{
 	Use:   "sunspot",
-	Short: "Sunspot provides tooling for noir ciruits on solana",
-	Long:  "Sunspot provides tooling for Noir circuits on Solana — including compilation, proof generation, and verification using Groth16.",
+	Short: "Sunspot provides tooling for noir circuits on Solana and Sui",
+	Long:  "Sunspot provides tooling for Noir circuits on Solana and Sui — including compilation, proof generation, verification, and verifier package generation using Groth16.",
 }
 
 func Execute() {
@@ -32,4 +32,5 @@ func init() {
 	rootCmd.AddCommand(proveCmd)
 	rootCmd.AddCommand(verifyCmd)
 	rootCmd.AddCommand(deployCmd)
+	rootCmd.AddCommand(deploySuiCmd)
 }

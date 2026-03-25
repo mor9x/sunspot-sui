@@ -8,7 +8,7 @@ import (
 
 	"github.com/consensys/gnark/constraint"
 	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/std/rangecheck"
+	"github.com/consensys/gnark/std/math/bits"
 	"github.com/google/btree"
 )
 
@@ -47,8 +47,14 @@ func (a Range[T, E]) Define(api frontend.Builder[E], witnesses map[shr.Witness]f
 		return fmt.Errorf("witness %v not found in witnesses map", *witness)
 	}
 
-	rangechecker := rangecheck.New(api)
-	rangechecker.Check(w, int(a.nBits))
+	if a.nBits == 0 {
+		api.AssertIsEqual(w, 0)
+		return nil
+	}
+
+	// Use a plain bit decomposition so the generated circuit stays compatible
+	// with standard Groth16 outputs on Sui.
+	_ = bits.ToBinary(api, w, bits.WithNbDigits(int(a.nBits)))
 	return nil
 }
 
